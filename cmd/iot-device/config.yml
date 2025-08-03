@@ -1,0 +1,45 @@
+device_id: "device-001"
+
+nats:
+  url: "nats://localhost:4222"
+
+sensors:
+  - id: "temp-01"
+    type: "temperature"
+    frequency: 5s
+    min: 15.0
+    max: 35.0
+    unit: "°C"
+    enabled: true
+    
+  - id: "temp-02"
+    type: "temperature"
+    frequency: 3s
+    min: 18.0
+    max: 28.0
+    unit: "°C"
+    enabled: true
+    
+  - id: "humidity-01"
+    type: "humidity"
+    frequency: 10s
+    min: 30.0
+    max: 70.0
+    unit: "%"
+    enabled: true
+    
+  - id: "pressure-01"
+    type: "pressure"
+    frequency: 15s
+    min: 980.0
+    max: 1030.0
+    unit: "hPa"
+    enabled: true
+    
+  - id: "pressure-02"
+    type: "pressure"
+    frequency: 8s
+    min: 990.0
+    max: 1020.0
+    unit: "hPa"
+    enabled: true
