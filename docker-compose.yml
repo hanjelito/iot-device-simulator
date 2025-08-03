@@ -1,0 +1,25 @@
+services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats-server
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: [
+      "--jetstream",           # Habilitar JetStream
+      "--http_port", "8222"    # Puerto para web monitoring
+    ]
+    volumes:
+      - nats_data:/data
+    
+  # Cliente con herramientas NATS
+  nats-client:
+    image: natsio/nats-box:latest
+    container_name: nats-client
+    depends_on:
+      - nats
+    tty: true
+    stdin_open: true
+
+volumes:
+  nats_data:
