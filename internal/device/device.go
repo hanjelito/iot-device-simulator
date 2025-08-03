@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	
+
 	"iot-device-simulator/internal/config"
 	"iot-device-simulator/internal/sensor"
 )
@@ -19,13 +19,13 @@ type Device struct {
 	nc      *nats.Conn
 }
 
-func New(cfg *config.Config, nc *nats.Conn) *Device {
+func NewDivice(cfg *config.Config, nc *nats.Conn) *Device {
 	device := &Device{
 		id: cfg.DeviceID,
 		nc: nc,
 	}
 
-	// Crear sensores
+	// create sensors
 	for _, sensorConfig := range cfg.Sensors {
 		s := sensor.New(sensorConfig, nc)
 		device.sensors = append(device.sensors, s)
@@ -34,23 +34,27 @@ func New(cfg *config.Config, nc *nats.Conn) *Device {
 	return device
 }
 
-func (d *Device) Start(ctx context.Context) {
+func (d *Device) StartDivice(ctx context.Context) {
 	// Configurar suscripciones NATS
 	d.setupSubscriptions()
 
 	// Iniciar sensores
+	enabledCount := 0
 	for _, s := range d.sensors {
-		go s.Start(ctx, d.id)
+		go s.StartSensor(ctx, d.id)
+		if s.GetConfig().Enabled {
+			enabledCount++
+		}
 	}
 
-	log.Printf("Device %s started with %d sensors", d.id, len(d.sensors))
+	log.Printf("Device %s started with %d sensors (%d enabled, %d disabled)", d.id, len(d.sensors), enabledCount, len(d.sensors)-enabledCount)
 }
 
 func (d *Device) setupSubscriptions() {
-	// Configuración de sensores
+	// Sensor configuration
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.config", d.id), d.handleConfig)
-	
-	// Estado del dispositivo
+
+	// Device status
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.status", d.id), d.handleStatus)
 }
 
@@ -59,18 +63,27 @@ func (d *Device) handleConfig(msg *nats.Msg) {
 	for _, s := range d.sensors {
 		configs[s.GetConfig().ID] = s.GetConfig()
 	}
-	
+
 	data, _ := json.Marshal(configs)
 	msg.Respond(data)
 }
 
 func (d *Device) handleStatus(msg *nats.Msg) {
-	status := map[string]interface{}{
-		"device_id": d.id,
-		"sensors":   len(d.sensors),
-		"timestamp": time.Now(),
+	enabledCount := 0
+	for _, s := range d.sensors {
+		if s.GetConfig().Enabled {
+			enabledCount++
+		}
 	}
-	
+
+	status := map[string]interface{}{
+		"device_id":        d.id,
+		"total_sensors":    len(d.sensors),
+		"enabled_sensors":  enabledCount,
+		"disabled_sensors": len(d.sensors) - enabledCount,
+		"timestamp":        time.Now(),
+	}
+
 	data, _ := json.Marshal(status)
 	msg.Respond(data)
 }

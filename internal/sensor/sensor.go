@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	
+
 	"iot-device-simulator/internal/config"
 )
 
@@ -31,7 +31,7 @@ func New(sensorConfig config.SensorConfig, nc *nats.Conn) *Sensor {
 	return &Sensor{config: sensorConfig, nc: nc}
 }
 
-func (s *Sensor) Start(ctx context.Context, deviceID string) {
+func (s *Sensor) StartSensor(ctx context.Context, deviceID string) {
 	if !s.config.Enabled {
 		log.Printf("Sensor %s is disabled, not starting", s.config.ID)
 		return
@@ -53,6 +53,7 @@ func (s *Sensor) Start(ctx context.Context, deviceID string) {
 	}
 }
 
+// generateReading simulates a sensor reading based on its configuration.
 func (s *Sensor) generateReading() Reading {
 	reading := Reading{
 		SensorID:  s.config.ID,

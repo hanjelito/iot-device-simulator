@@ -43,12 +43,12 @@ func main() {
 	defer nc.Close()
 
 	// Crear y iniciar dispositivo
-	dev := device.New(cfg, nc)
+	dev := device.NewDivice(cfg, nc)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dev.Start(ctx)
+	dev.StartDivice(ctx)
 
 	log.Printf("NATS subjects:")
 	log.Printf("  - iot.%s.config (get sensor configs)", dev.GetID())

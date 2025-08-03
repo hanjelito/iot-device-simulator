@@ -42,4 +42,4 @@ sensors:
     min: 990.0
     max: 1020.0
     unit: "hPa"
-    enabled: true
+    enabled: false
