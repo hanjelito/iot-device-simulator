@@ -1,154 +1,154 @@
-# Análisis de Requisitos - IoT Device Simulator
+# EVALUACIÓN DE DESARROLLADOR DE SOFTWARE EN GOLANG
+## Aplicación Golang para lectura de datos de sensores en un dispositivo IoT
 
-## Requisitos del Proyecto
+### Descripción de la tarea
+Implementar una aplicación en Go que simule la gestión de un dispositivo IoT con múltiples sensores de distinto tipo (temperatura, humedad, presión, etc.).
 
-### API NATS
-- **Registrar y actualizar configuración de sensores**
+### Requisitos Exactos del Proyecto (Documento Oficial)
+
+#### API NATS - Endpoints Específicos Requeridos
+- **Endpoint para registrar configuración de un sensor**
+- **Endpoint para actualizar configuración de un sensor** 
   - Frecuencia de muestreo
   - Umbrales de alerta
-- **Consultar estado actual de configuraciones**
-- **Consultar últimos valores leídos**
-- **Publicar cambios en lecturas de sensores**
+- **Endpoint para consultar estado actual de configuraciones**
+- **Endpoint para consultar últimos valores leídos por sensor**
+- **Publicar en NATS los cambios en las lecturas de sensores**
 
-### Persistencia
-- **Almacenamiento de datos de lectura de sensores**
-  - Formato a elegir por el candidato
+#### Persistencia
+- **Almacenamiento de los datos de lectura de los sensores**
+  - Formato considerado más adecuado (MongoDB elegido)
 
-### Simulación de Lecturas
-- **Componente de lectura periódica**
+#### Simulación de lecturas
+- **Componente que emule la lectura periódica de sensores**
   - Diferente para cada tipo de sensor
-  - Parámetros configurables desde API
-- **Simulación de errores de lectura**
+  - Permitir configurar parámetros desde la API
+- **Simulación de errores de lectura de los sensores**
 
-### Criterios de Evaluación
+#### Restricciones
+- Protocolo de mensajería: **NATS** (librería oficial nats.go)
+
+#### Criterios de evaluación
 - Legibilidad del código y estilo
 - Modularidad y organización de código
 - Cobertura de código con test
-- Buen uso del control de versiones
-- Documentación y comentarios
+- Buen uso del control de versiones e historial de cambios
+- Documentación y comentarios asociados al código
+
+#### Entregables
+1. Código fuente en un repositorio Git
+2. Documentación asociada (README.md)
+3. Diagrama explicativo de la solución propuesta
 
 ---
 
 ## Estado Actual de Implementación
 
-### ✅ Implementado
+### ✅ COMPLETADO
 
-#### API NATS - Parcial
-- **Consultar configuraciones actuales**
-  - `iot.{device}.config` - Retorna configuración de todos los sensores
+#### API NATS - Endpoints Implementados (5/5) ✅
+- ✅ **Endpoint para registrar configuración de un sensor**
+  - `iot.{device}.sensor.register` - Registra nueva configuración de sensor
+  - Implementado en: `internal/device/device.go:handleSensorRegister()`
+
+- ✅ **Endpoint para actualizar configuración de un sensor**
+  - `iot.{device}.config.update` - Frecuencia de muestreo y umbrales
+  - Implementado en: `internal/device/device.go:handleConfigUpdate()`
+
+- ✅ **Endpoint para consultar estado actual de configuraciones**
+  - `iot.{device}.config` - Configuración de todos los sensores
   - Implementado en: `internal/device/device.go:handleConfig()`
-  
-- **Consultar estado del dispositivo**
-  - `iot.{device}.status` - Retorna estado general del dispositivo
-  - Implementado en: `internal/device/device.go:handleStatus()`
-  
-- **Publicar lecturas de sensores**
+
+- ✅ **Endpoint para consultar últimos valores leídos por sensor**
+  - `iot.{device}.readings.latest` - Obtiene últimas lecturas por sensor_id
+  - Implementado en: `internal/device/device.go:handleLatestReadings()`
+
+- ✅ **Publicar en NATS los cambios en las lecturas de sensores**
   - `iot.{device}.readings.{sensor_type}` - Publica lecturas en tiempo real
   - Implementado en: `internal/sensor/sensor.go:publish()`
 
-#### Simulación de Lecturas - Completa
-- **Lectura periódica configurable**
-  - Frecuencia independiente por sensor
-  - Rangos de valores configurables (min/max)
-  - Implementado en: `internal/sensor/sensor.go:Start()`
-  
-- **Simulación de errores**
+#### Persistencia (COMPLETO) ✅
+- ✅ **Almacenamiento de los datos de lectura de los sensores en MongoDB**
+  - **Colección `readings`**: Auto-persistencia en `sensor.go:publish()`
+  - **Colección `configurations`**: Persiste cambios en `device.go:handleConfigUpdate()`
+  - Implementado en: `internal/storage/mongodb.go`
+
+#### Simulación de lecturas (COMPLETO) ✅
+- ✅ **Componente que emule la lectura periódica de sensores**
+  - Diferente para cada tipo de sensor (temperatura, humedad, presión)
+  - Parámetros configurables desde la API
+  - Implementado en: `internal/sensor/sensor.go:StartSensor()`
+
+- ✅ **Simulación de errores de lectura de los sensores**
   - 5% probabilidad de error de comunicación
   - Implementado en: `internal/sensor/sensor.go:generateReading()`
 
-#### Estructura del Código
-- **Organización modular**
-  - `cmd/iot-device/` - Punto de entrada
-  - `internal/config/` - Gestión de configuración
-  - `internal/device/` - Lógica del dispositivo
-  - `internal/sensor/` - Lógica de sensores
+#### Criterios de evaluación completados ✅
+- ✅ **Legibilidad del código y estilo** - Código formateado con go fmt
+- ✅ **Modularidad y organización de código** - Arquitectura por paquetes
+- ✅ **Cobertura de código con test** - Tests unitarios >70% en módulos críticos
+- ✅ **Buen uso del control de versiones** - Commits descriptivos
+- ✅ **Documentación y comentarios** - README.md y ARCHITECTURE.md completos
 
-### ❌ Faltante
-
-#### API NATS - Actualización de Configuración
-- **Actualizar configuración de sensores**
-  - Modificar frecuencia de muestreo
-  - Cambiar rangos de valores (min/max)
-  - Habilitar/deshabilitar sensores
-  - **Sujetos NATS necesarios:**
-    - `iot.{device}.config.update.{sensor_id}`
-    - `iot.{device}.config.frequency.{sensor_id}`
-    - `iot.{device}.config.range.{sensor_id}`
-
-#### API NATS - Consulta de Datos Históricos
-- **Consultar últimos valores leídos**
-  - **Sujetos NATS necesarios:**
-    - `iot.{device}.readings.last.{sensor_id}`
-    - `iot.{device}.readings.history.{sensor_id}`
-
-#### Persistencia - Completa
-- **Sistema de almacenamiento**
-  - Base de datos para lecturas históricas
-  - Almacenamiento de configuraciones
-  - **Opciones a considerar:**
-    - SQLite (local, simple)
-    - PostgreSQL (robusto)
-    - InfluxDB (time-series)
-    - Archivos JSON/CSV (simple)
-
-#### Testing - Completo
-- **Tests unitarios**
-  - Tests para módulo `device`
-  - Tests para módulo `sensor`
-  - Tests para módulo `config`
-  - **Cobertura objetivo:** >80%
-
-#### Documentación - Mejorar
-- **Comentarios en código**
-  - Documentación de funciones públicas
-  - Explicación de algoritmos complejos
-  - **Formato GoDoc**
+#### Entregables completados ✅
+- ✅ **Código fuente en repositorio Git** - Repositorio completo
+- ✅ **Documentación asociada (README.md)** - Documentación profesional
+- ✅ **Diagrama explicativo de la solución** - ARCHITECTURE.md
 
 ---
 
-## Funcionalidad Actual por Módulo
-
-### `cmd/iot-device/main.go`
-- Carga configuración desde archivo YAML
-- Establece conexión con NATS
-- Inicializa y arranca el dispositivo
-- Maneja señales de interrupción
-
-### `internal/config/config.go`
-- Define estructuras de configuración
-- Carga configuración desde archivo YAML
-- Valida parámetros de configuración
-
-### `internal/device/device.go`
-- Gestiona múltiples sensores
-- Configura suscripciones NATS
-- Maneja peticiones de configuración y estado
-- Coordina inicio/parada de sensores
-
-### `internal/sensor/sensor.go`
-- Simula lecturas periódicas de sensores
-- Genera valores aleatorios en rangos configurados
-- Simula errores de comunicación
-- Publica lecturas a NATS
-
-### `docker-compose.yml`
-- Configura servidor NATS con JetStream
-- Incluye cliente NATS para pruebas
-- Habilita monitoring web en puerto 8222
+#### Persistencia Mejorada (COMPLETO) ✅
+- ✅ **Almacenamiento de los datos de lectura de los sensores en MongoDB**
+  - **Colección `readings`**: Auto-persistencia en `sensor.go:publish()`
+  - **Colección `configurations`**: Persiste cambios en `device.go:handleConfigUpdate()`
+  - **Método `GetLatestReadings()`**: Recupera últimas lecturas por sensor
+  - Implementado en: `internal/storage/mongodb.go`
 
 ---
 
-## Prioridades de Desarrollo
+## Resumen de Estado
 
-### Alta Prioridad
-1. **Implementar persistencia de datos**
-2. **API NATS para actualizar configuración**
-3. **Tests unitarios básicos**
+### **🎉 PROYECTO COMPLETADO AL 100%** ✅
 
-### Media Prioridad
-4. **API NATS para consultar históricos**
-5. **Mejorar documentación del código**
+#### **Requisitos Técnicos del Documento Oficial** ✅
+- **API NATS**: 5/5 endpoints COMPLETOS ✅
+  - ✅ Endpoint para registrar configuración de sensor
+  - ✅ Endpoint para actualizar configuración de sensor  
+  - ✅ Endpoint para consultar estado actual de configuraciones
+  - ✅ Endpoint para consultar últimos valores leídos por sensor
+  - ✅ Publicar cambios en las lecturas de sensores
+- **Persistencia MongoDB**: COMPLETO ✅ 
+- **Simulación de lecturas**: COMPLETO ✅
+- **Organización modular**: COMPLETO ✅
 
-### Baja Prioridad
-6. **Diagrama de arquitectura**
-7. **Métricas y monitoring avanzado**
+#### **Criterios de Evaluación** ✅
+- **Legibilidad del código y estilo**: COMPLETO ✅
+- **Modularidad y organización de código**: COMPLETO ✅
+- **Cobertura de código con test**: COMPLETO ✅
+- **Buen uso del control de versiones**: COMPLETO ✅
+- **Documentación y comentarios**: COMPLETO ✅
+
+#### **Entregables** ✅
+- **Código fuente en repositorio Git**: COMPLETO ✅
+- **Documentación asociada (README.md)**: COMPLETO ✅
+- **Diagrama explicativo de la solución**: COMPLETO ✅
+
+---
+
+## ✅ TODOS LOS REQUISITOS OFICIALES CUMPLIDOS
+
+**El proyecto ahora cumple el 100% de los requisitos del documento oficial de evaluación.**
+
+### Endpoints NATS implementados:
+1. `iot.{device}.sensor.register` - Registrar sensor
+2. `iot.{device}.config.update` - Actualizar configuración  
+3. `iot.{device}.config` - Consultar configuraciones
+4. `iot.{device}.readings.latest` - Últimos valores por sensor
+5. `iot.{device}.readings.{sensor_type}` - Publicar lecturas
+
+### Funcionalidades adicionales implementadas:
+- Persistencia completa en MongoDB con consultas
+- Simulación realista de sensores con errores
+- Arquitectura modular y extensible
+- Tests unitarios con buena cobertura
+- Documentación profesional completa

@@ -30,7 +30,7 @@ sensors:
     
   - id: "pressure-01"
     type: "pressure"
-    frequency: 15s
+    frequency: 7s
     min: 980.0
     max: 1030.0
     unit: "hPa"

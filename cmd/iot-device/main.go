@@ -12,6 +12,7 @@ import (
 
 	"iot-device-simulator/internal/config"
 	"iot-device-simulator/internal/device"
+	"iot-device-simulator/internal/storage"
 )
 
 func main() {
@@ -35,6 +36,16 @@ func main() {
 		log.Printf("  - %s (%s): %v enabled=%v", sensor.ID, sensor.Type, sensor.Frequency, sensor.Enabled)
 	}
 
+	// Connect to MongoDB
+	mongodb, err := storage.NewMongoDB("mongodb://localhost:27017", "iot_simulator")
+	if err != nil {
+		log.Printf("Warning: MongoDB not available, running without persistence: %v", err)
+		mongodb = nil
+	} else {
+		log.Println("Connected to MongoDB")
+		defer mongodb.Close()
+	}
+
 	// connect to NATS
 	nc, err := nats.Connect(cfg.NATS.URL)
 	if err != nil {
@@ -43,7 +54,7 @@ func main() {
 	defer nc.Close()
 
 	// Crear y iniciar dispositivo
-	dev := device.NewDivice(cfg, nc)
+	dev := device.NewDivice(cfg, nc, mongodb)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -52,6 +63,7 @@ func main() {
 
 	log.Printf("NATS subjects:")
 	log.Printf("  - iot.%s.config (get sensor configs)", dev.GetID())
+	log.Printf("  - iot.%s.config.update (update sensor configs)", dev.GetID())
 	log.Printf("  - iot.%s.status (get device status)", dev.GetID())
 	log.Printf("  - iot.%s.readings.* (sensor readings)", dev.GetID())
 

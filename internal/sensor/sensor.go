@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -14,21 +15,27 @@ import (
 )
 
 type Reading struct {
-	SensorID  string    `json:"sensor_id"`
-	Type      string    `json:"type"`
-	Value     float64   `json:"value"`
-	Unit      string    `json:"unit"`
-	Timestamp time.Time `json:"timestamp"`
-	Error     string    `json:"error,omitempty"`
+	SensorID  string    `json:"sensor_id" bson:"sensor_id"`
+	Type      string    `json:"type" bson:"type"`
+	Value     float64   `json:"value" bson:"value"`
+	Unit      string    `json:"unit" bson:"unit"`
+	Timestamp time.Time `json:"timestamp" bson:"timestamp"`
+	Error     string    `json:"error,omitempty" bson:"error,omitempty"`
+}
+
+type Storage interface {
+	SaveReading(reading Reading) error
 }
 
 type Sensor struct {
-	config config.SensorConfig
-	nc     *nats.Conn
+	config  config.SensorConfig
+	nc      *nats.Conn
+	storage Storage
+	mu      sync.RWMutex
 }
 
-func New(sensorConfig config.SensorConfig, nc *nats.Conn) *Sensor {
-	return &Sensor{config: sensorConfig, nc: nc}
+func New(sensorConfig config.SensorConfig, nc *nats.Conn, storage Storage) *Sensor {
+	return &Sensor{config: sensorConfig, nc: nc, storage: storage}
 }
 
 func (s *Sensor) StartSensor(ctx context.Context, deviceID string) {
@@ -74,13 +81,44 @@ func (s *Sensor) generateReading() Reading {
 }
 
 func (s *Sensor) publish(reading Reading, deviceID string) {
+	// Publish to NATS first
 	data, _ := json.Marshal(reading)
 	subject := fmt.Sprintf("iot.%s.readings.%s", deviceID, reading.Type)
 	if err := s.nc.Publish(subject, data); err != nil {
 		log.Printf("Error publishing reading from %s: %v", reading.SensorID, err)
 	}
+
+	// Save to MongoDB if available
+	if s.storage != nil {
+		if err := s.storage.SaveReading(reading); err != nil {
+			log.Printf("Error saving reading to storage: %v", err)
+		}
+	}
 }
 
 func (s *Sensor) GetConfig() config.SensorConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.config
+}
+
+func (s *Sensor) UpdateFrequency(frequency time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.config.Frequency = frequency
+	log.Printf("Sensor %s frequency updated to %v", s.config.ID, frequency)
+}
+
+func (s *Sensor) UpdateThresholds(thresholds map[string]interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	if min, ok := thresholds["min"].(float64); ok {
+		s.config.Min = min
+	}
+	if max, ok := thresholds["max"].(float64); ok {
+		s.config.Max = max
+	}
+	
+	log.Printf("Sensor %s thresholds updated: min=%.2f, max=%.2f", s.config.ID, s.config.Min, s.config.Max)
 }

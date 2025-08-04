@@ -20,6 +20,20 @@ services:
       - nats
     tty: true
     stdin_open: true
+    environment:
+      - NATS_URL=nats://nats-server:4222
+
+  # MongoDB para persistencia
+  mongodb:
+    image: mongo:7-jammy
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: iot_simulator
 
 volumes:
   nats_data:
+  mongodb_data:
