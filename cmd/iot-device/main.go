@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	// Cargar configuración - obligatorio
+	// Load configuration - mandatory
 	configFile := ""
 	if len(os.Args) > 1 {
 		configFile = os.Args[1]
@@ -46,20 +46,20 @@ func main() {
 		defer mongodb.Close()
 	}
 
-	// connect to NATS
+	// Connect to NATS
 	nc, err := nats.Connect(cfg.NATS.URL)
 	if err != nil {
 		log.Fatal("Error connecting to NATS:", err)
 	}
 	defer nc.Close()
 
-	// Crear y iniciar dispositivo
-	dev := device.NewDivice(cfg, nc, mongodb)
+	// Create and start the device
+	dev := device.NewDevice(cfg, nc, mongodb)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dev.StartDivice(ctx)
+	dev.StartDevice(ctx)
 
 	log.Printf("NATS subjects:")
 	log.Printf("  - iot.%s.config (get sensor configs)", dev.GetID())
@@ -67,7 +67,7 @@ func main() {
 	log.Printf("  - iot.%s.status (get device status)", dev.GetID())
 	log.Printf("  - iot.%s.readings.* (sensor readings)", dev.GetID())
 
-	// Esperar señal de interrupción
+	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan

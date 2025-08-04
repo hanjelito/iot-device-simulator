@@ -1,3 +1,4 @@
+// Package storage proporciona la funcionalidad para interactuar con la base de datos MongoDB.
 package storage
 
 import (
@@ -12,11 +13,14 @@ import (
 	"iot-device-simulator/internal/sensor"
 )
 
+// MongoDB representa un cliente de base de datos para almacenar lecturas y configuraciones.
 type MongoDB struct {
 	client   *mongo.Client
 	database *mongo.Database
 }
 
+// NewMongoDB crea y devuelve una nueva instancia de MongoDB conectada a la base de datos.
+// Devuelve un error si la conexión falla.
 func NewMongoDB(uri, dbName string) (*MongoDB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -36,6 +40,7 @@ func NewMongoDB(uri, dbName string) (*MongoDB, error) {
 	}, nil
 }
 
+// SaveReading guarda una única lectura de sensor en la colección 'readings'.
 func (m *MongoDB) SaveReading(reading sensor.Reading) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -47,6 +52,8 @@ func (m *MongoDB) SaveReading(reading sensor.Reading) error {
 	return err
 }
 
+// SaveConfig guarda la configuración completa de un dispositivo en la colección 'configurations'.
+// Utiliza una operación de upsert para crear o reemplazar la configuración existente.
 func (m *MongoDB) SaveConfig(deviceID string, configs map[string]any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -71,6 +78,8 @@ func (m *MongoDB) SaveConfig(deviceID string, configs map[string]any) error {
 	return err
 }
 
+// GetLatestReadings recupera las últimas 'limit' lecturas para un sensorID específico,
+// ordenadas por timestamp descendente.
 func (m *MongoDB) GetLatestReadings(sensorID string, limit int) ([]sensor.Reading, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -92,6 +101,7 @@ func (m *MongoDB) GetLatestReadings(sensorID string, limit int) ([]sensor.Readin
 	return readings, nil
 }
 
+// Close cierra la conexión con la base de datos MongoDB.
 func (m *MongoDB) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

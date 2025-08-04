@@ -1,3 +1,5 @@
+// Package device manages the core logic of an IoT device.
+// It orchestrates sensors, handles NATS subscriptions, and processes incoming requests.
 package device
 
 import (
@@ -14,6 +16,9 @@ import (
 	"iot-device-simulator/internal/storage"
 )
 
+// Device represents a simulated IoT device.
+// It holds the device's configuration, sensors, and connections to external services.
+// It is the central component for managing the device's state and behavior.
 type Device struct {
 	id      string
 	sensors []*sensor.Sensor
@@ -21,14 +26,16 @@ type Device struct {
 	storage *storage.MongoDB
 }
 
-func NewDivice(cfg *config.Config, nc *nats.Conn, store *storage.MongoDB) *Device {
+// NewDevice creates and initializes a new Device based on the provided configuration.
+// It sets up the device's sensors and establishes connections to NATS and MongoDB.
+func NewDevice(cfg *config.Config, nc *nats.Conn, store *storage.MongoDB) *Device {
 	device := &Device{
 		id:      cfg.DeviceID,
 		nc:      nc,
 		storage: store,
 	}
 
-	// create sensors
+	// Create sensors from configuration
 	for _, sensorConfig := range cfg.Sensors {
 		s := sensor.New(sensorConfig, nc, store)
 		device.sensors = append(device.sensors, s)
@@ -37,11 +44,13 @@ func NewDivice(cfg *config.Config, nc *nats.Conn, store *storage.MongoDB) *Devic
 	return device
 }
 
-func (d *Device) StartDivice(ctx context.Context) {
-	// Configurar suscripciones NATS
+// StartDevice begins the device's operation.
+// It sets up NATS subscriptions and starts all enabled sensors in separate goroutines.
+func (d *Device) StartDevice(ctx context.Context) {
+	// Set up NATS subscriptions
 	d.setupSubscriptions()
 
-	// Iniciar sensores
+	// Start sensors
 	enabledCount := 0
 	for _, s := range d.sensors {
 		go s.StartSensor(ctx, d.id)
@@ -53,23 +62,25 @@ func (d *Device) StartDivice(ctx context.Context) {
 	log.Printf("Device %s started with %d sensors (%d enabled, %d disabled)", d.id, len(d.sensors), enabledCount, len(d.sensors)-enabledCount)
 }
 
+// setupSubscriptions configures the NATS subscriptions for all device endpoints.
 func (d *Device) setupSubscriptions() {
-	// Sensor configuration
+	// Get sensor configuration
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.config", d.id), d.handleConfig)
 
-	// Device status
+	// Get device status
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.status", d.id), d.handleStatus)
 
 	// Update sensor configuration
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.config.update", d.id), d.handleConfigUpdate)
 
-	// Register new sensor configuration
+	// Register a new sensor
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.sensor.register", d.id), d.handleSensorRegister)
 
-	// Get latest readings by sensor
+	// Get the latest readings for a sensor
 	d.nc.Subscribe(fmt.Sprintf("iot.%s.readings.latest", d.id), d.handleLatestReadings)
 }
 
+// handleConfig responds with the current configuration of all sensors.
 func (d *Device) handleConfig(msg *nats.Msg) {
 	configs := make(map[string]interface{})
 	for _, s := range d.sensors {
@@ -80,6 +91,7 @@ func (d *Device) handleConfig(msg *nats.Msg) {
 	msg.Respond(data)
 }
 
+// handleStatus responds with the current operational status of the device.
 func (d *Device) handleStatus(msg *nats.Msg) {
 	enabledCount := 0
 	for _, s := range d.sensors {
@@ -100,6 +112,7 @@ func (d *Device) handleStatus(msg *nats.Msg) {
 	msg.Respond(data)
 }
 
+// handleConfigUpdate processes requests to update a sensor's configuration.
 func (d *Device) handleConfigUpdate(msg *nats.Msg) {
 	var updateRequest map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &updateRequest); err != nil {
@@ -109,11 +122,11 @@ func (d *Device) handleConfigUpdate(msg *nats.Msg) {
 
 	sensorID, ok := updateRequest["sensor_id"].(string)
 	if !ok {
-		msg.Respond([]byte(`{"error": "sensor_id required"}`))
+		msg.Respond([]byte(`{"error": "sensor_id is required"}`))
 		return
 	}
 
-	// Find sensor
+	// Find the target sensor
 	var targetSensor *sensor.Sensor
 	for _, s := range d.sensors {
 		if s.GetConfig().ID == sensorID {
@@ -143,7 +156,7 @@ func (d *Device) handleConfigUpdate(msg *nats.Msg) {
 		}
 	}
 
-	// Save updated configuration to MongoDB
+	// Save updated configuration to MongoDB if storage is available
 	if d.storage != nil {
 		configs := make(map[string]interface{})
 		for _, s := range d.sensors {
@@ -155,6 +168,7 @@ func (d *Device) handleConfigUpdate(msg *nats.Msg) {
 	msg.Respond([]byte(`{"status": "updated"}`))
 }
 
+// handleSensorRegister processes requests to register a new sensor with the device.
 func (d *Device) handleSensorRegister(msg *nats.Msg) {
 	var registerRequest map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &registerRequest); err != nil {
@@ -164,13 +178,13 @@ func (d *Device) handleSensorRegister(msg *nats.Msg) {
 
 	sensorID, ok := registerRequest["sensor_id"].(string)
 	if !ok {
-		msg.Respond([]byte(`{"error": "sensor_id required"}`))
+		msg.Respond([]byte(`{"error": "sensor_id is required"}`))
 		return
 	}
 
 	sensorType, ok := registerRequest["type"].(string)
 	if !ok {
-		msg.Respond([]byte(`{"error": "type required"}`))
+		msg.Respond([]byte(`{"error": "type is required"}`))
 		return
 	}
 
@@ -182,18 +196,18 @@ func (d *Device) handleSensorRegister(msg *nats.Msg) {
 		}
 	}
 
-	// Create sensor config
+	// Create a new sensor configuration from the request
 	sensorConfig := config.SensorConfig{
 		ID:        sensorID,
 		Type:      sensorType,
 		Enabled:   true,
-		Frequency: 30 * time.Second,
-		Min:       0,
-		Max:       100,
+		Frequency: 30 * time.Second, // Default frequency
+		Min:       0,                // Default min
+		Max:       100,              // Default max
 		Unit:      "",
 	}
 
-	// Parse optional parameters
+	// Parse optional parameters from the request
 	if frequency, ok := registerRequest["frequency"].(string); ok {
 		if duration, err := time.ParseDuration(frequency); err == nil {
 			sensorConfig.Frequency = duration
@@ -209,17 +223,17 @@ func (d *Device) handleSensorRegister(msg *nats.Msg) {
 		sensorConfig.Unit = unit
 	}
 
-	// Create and add new sensor
+	// Create and add the new sensor
 	newSensor := sensor.New(sensorConfig, d.nc, d.storage)
 	d.sensors = append(d.sensors, newSensor)
 
-	// Start the new sensor immediately if enabled
+	// Start the new sensor immediately in a new goroutine
 	if sensorConfig.Enabled {
 		go newSensor.StartSensor(context.Background(), d.id)
 		log.Printf("Started new sensor %s with frequency %v", sensorID, sensorConfig.Frequency)
 	}
 
-	// Save updated configuration to MongoDB
+	// Save the updated device configuration to MongoDB
 	if d.storage != nil {
 		configs := make(map[string]interface{})
 		for _, s := range d.sensors {
@@ -229,15 +243,16 @@ func (d *Device) handleSensorRegister(msg *nats.Msg) {
 	}
 
 	response := map[string]interface{}{
-		"status": "registered",
+		"status":    "registered",
 		"sensor_id": sensorID,
-		"config": sensorConfig,
+		"config":    sensorConfig,
 	}
-	
+
 	data, _ := json.Marshal(response)
 	msg.Respond(data)
 }
 
+// handleLatestReadings responds with the most recent reading for a given sensor.
 func (d *Device) handleLatestReadings(msg *nats.Msg) {
 	var request map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &request); err != nil {
@@ -247,11 +262,11 @@ func (d *Device) handleLatestReadings(msg *nats.Msg) {
 
 	sensorID, ok := request["sensor_id"].(string)
 	if !ok {
-		msg.Respond([]byte(`{"error": "sensor_id required"}`))
+		msg.Respond([]byte(`{"error": "sensor_id is required"}`))
 		return
 	}
 
-	// Find sensor
+	// Find the target sensor
 	var targetSensor *sensor.Sensor
 	for _, s := range d.sensors {
 		if s.GetConfig().ID == sensorID {
@@ -265,7 +280,7 @@ func (d *Device) handleLatestReadings(msg *nats.Msg) {
 		return
 	}
 
-	// Get latest readings from MongoDB
+	// Get latest readings from MongoDB if storage is available
 	if d.storage != nil {
 		readings, err := d.storage.GetLatestReadings(sensorID, 1)
 		if err != nil {
@@ -279,7 +294,7 @@ func (d *Device) handleLatestReadings(msg *nats.Msg) {
 		}
 
 		data, _ := json.Marshal(map[string]interface{}{
-			"sensor_id": sensorID,
+			"sensor_id":      sensorID,
 			"latest_reading": readings[0],
 		})
 		msg.Respond(data)
@@ -289,6 +304,7 @@ func (d *Device) handleLatestReadings(msg *nats.Msg) {
 	msg.Respond([]byte(`{"error": "storage not available"}`))
 }
 
+// GetID returns the unique identifier of the device.
 func (d *Device) GetID() string {
 	return d.id
 }

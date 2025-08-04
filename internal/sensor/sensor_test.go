@@ -1,3 +1,4 @@
+// Package sensor_test contains the unit tests for the sensor package.
 package sensor
 
 import (
@@ -7,12 +8,15 @@ import (
 	"iot-device-simulator/internal/config"
 )
 
+// mockStorage is a no-op implementation of the Storage interface for testing purposes.
 type mockStorage struct{}
 
+// SaveReading does nothing and returns nil, satisfying the Storage interface.
 func (m *mockStorage) SaveReading(reading Reading) error {
 	return nil
 }
 
+// TestNew tests the New function to ensure a Sensor is created correctly.
 func TestNew(t *testing.T) {
 	cfg := config.SensorConfig{
 		ID:        "test-sensor",
@@ -25,12 +29,13 @@ func TestNew(t *testing.T) {
 	}
 
 	sensor := New(cfg, nil, &mockStorage{})
-	
+
 	if sensor.GetConfig().ID != "test-sensor" {
 		t.Errorf("Expected sensor ID 'test-sensor', got '%s'", sensor.GetConfig().ID)
 	}
 }
 
+// TestGenerateReading tests the generateReading method to ensure it produces valid readings.
 func TestGenerateReading(t *testing.T) {
 	cfg := config.SensorConfig{
 		ID:   "test-sensor",
@@ -55,11 +60,13 @@ func TestGenerateReading(t *testing.T) {
 		t.Errorf("Expected unit '°C', got '%s'", reading.Unit)
 	}
 
+	// Only check the value range if no error was simulated.
 	if reading.Error == "" && (reading.Value < 20.0 || reading.Value > 30.0) {
 		t.Errorf("Value %.2f out of range [20.0, 30.0]", reading.Value)
 	}
 }
 
+// TestUpdateFrequency tests the UpdateFrequency method.
 func TestUpdateFrequency(t *testing.T) {
 	cfg := config.SensorConfig{
 		ID:        "test-sensor",
@@ -76,6 +83,7 @@ func TestUpdateFrequency(t *testing.T) {
 	}
 }
 
+// TestUpdateThresholds tests the UpdateThresholds method.
 func TestUpdateThresholds(t *testing.T) {
 	cfg := config.SensorConfig{
 		ID:  "test-sensor",
