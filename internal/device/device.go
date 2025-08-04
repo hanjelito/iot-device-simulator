@@ -150,6 +150,18 @@ func (d *Device) handleConfigUpdate(msg *nats.Msg) {
 	}
 
 	// Update thresholds if provided
+	thresholdUpdates := make(map[string]interface{})
+	if min, ok := updateRequest["min"]; ok {
+		thresholdUpdates["min"] = min
+	}
+	if max, ok := updateRequest["max"]; ok {
+		thresholdUpdates["max"] = max
+	}
+	if len(thresholdUpdates) > 0 {
+		targetSensor.UpdateThresholds(thresholdUpdates)
+	}
+
+	// Also handle thresholds object for backward compatibility
 	if thresholds, ok := updateRequest["thresholds"]; ok {
 		if threshMap, ok := thresholds.(map[string]interface{}); ok {
 			targetSensor.UpdateThresholds(threshMap)
