@@ -100,7 +100,8 @@ func (s *Sensor) generateReading() Reading {
 func (s *Sensor) publish(reading Reading, deviceID string) {
 	// Publish to NATS first
 	data, _ := json.Marshal(reading)
-	subject := fmt.Sprintf("iot.%s.readings.%s", deviceID, reading.Type)
+	// subject := fmt.Sprintf("iot.%s.readings.%s", deviceID, reading.Type)
+	subject := fmt.Sprintf("iot.%s.readings.%s.%s", deviceID, reading.Type, reading.SensorID)
 	if err := s.nc.Publish(subject, data); err != nil {
 		log.Printf("Error publishing reading from %s: %v", reading.SensorID, err)
 	}
@@ -132,13 +133,13 @@ func (s *Sensor) UpdateFrequency(frequency time.Duration) {
 func (s *Sensor) UpdateThresholds(thresholds map[string]interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if min, ok := thresholds["min"].(float64); ok {
 		s.config.Min = min
 	}
 	if max, ok := thresholds["max"].(float64); ok {
 		s.config.Max = max
 	}
-	
+
 	log.Printf("Sensor %s thresholds updated: min=%.2f, max=%.2f", s.config.ID, s.config.Min, s.config.Max)
 }

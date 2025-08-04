@@ -1,4 +1,4 @@
-// Package storage proporciona la funcionalidad para interactuar con la base de datos MongoDB.
+// Package storage provides functionality for interacting with the MongoDB database.
 package storage
 
 import (
@@ -13,14 +13,14 @@ import (
 	"iot-device-simulator/internal/sensor"
 )
 
-// MongoDB representa un cliente de base de datos para almacenar lecturas y configuraciones.
+// MongoDB represents a database client for storing readings and configurations.
 type MongoDB struct {
 	client   *mongo.Client
 	database *mongo.Database
 }
 
-// NewMongoDB crea y devuelve una nueva instancia de MongoDB conectada a la base de datos.
-// Devuelve un error si la conexión falla.
+// NewMongoDB creates and returns a new MongoDB instance connected to the database.
+// It returns an error if the connection fails.
 func NewMongoDB(uri, dbName string) (*MongoDB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -40,20 +40,20 @@ func NewMongoDB(uri, dbName string) (*MongoDB, error) {
 	}, nil
 }
 
-// SaveReading guarda una única lectura de sensor en la colección 'readings'.
+// SaveReading saves a single sensor reading to the 'readings' collection.
 func (m *MongoDB) SaveReading(reading sensor.Reading) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := m.database.Collection("readings").InsertOne(ctx, reading)
 	if err != nil {
-		log.Printf("Error saving reading: %v", err)
+		log.Printf("Error saving reading to MongoDB: %v", err)
 	}
 	return err
 }
 
-// SaveConfig guarda la configuración completa de un dispositivo en la colección 'configurations'.
-// Utiliza una operación de upsert para crear o reemplazar la configuración existente.
+// SaveConfig saves the complete configuration of a device to the 'configurations' collection.
+// It uses an upsert operation to either create a new document or replace an existing one.
 func (m *MongoDB) SaveConfig(deviceID string, configs map[string]any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -73,13 +73,13 @@ func (m *MongoDB) SaveConfig(deviceID string, configs map[string]any) error {
 	)
 	
 	if err != nil {
-		log.Printf("Error saving config: %v", err)
+		log.Printf("Error saving config to MongoDB: %v", err)
 	}
 	return err
 }
 
-// GetLatestReadings recupera las últimas 'limit' lecturas para un sensorID específico,
-// ordenadas por timestamp descendente.
+// GetLatestReadings retrieves the last 'limit' readings for a specific sensorID,
+// ordered by timestamp in descending order.
 func (m *MongoDB) GetLatestReadings(sensorID string, limit int) ([]sensor.Reading, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -101,7 +101,7 @@ func (m *MongoDB) GetLatestReadings(sensorID string, limit int) ([]sensor.Readin
 	return readings, nil
 }
 
-// Close cierra la conexión con la base de datos MongoDB.
+// Close disconnects the client from the MongoDB server.
 func (m *MongoDB) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

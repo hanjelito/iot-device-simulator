@@ -36,11 +36,10 @@ nats sub "iot.device-001.readings.>"
 
 ## 📖 Full Documentation
 
-All detailed documentation, including architecture diagrams, the NATS command guide, and project requirements, can be found in the [`docs/`](./docs) directory.
+All detailed documentation, including architecture diagrams and the NATS command guide, can be found in the [`docs/`](./docs) directory.
 
 - **[System Architecture](./docs/ARCHITECTURE.md)**: Technical design and diagrams.
 - **[NATS Commands](./docs/nats-commands.md)**: A complete guide to NATS commands with examples.
-- **[Project Requirements](./docs/REQUIREMENTS.md)**: A detailed description of the project requirements.
 
 ## 🔧 Main Commands
 
