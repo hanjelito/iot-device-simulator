@@ -59,9 +59,9 @@ func (m *MongoDB) SaveConfig(deviceID string, configs map[string]any) error {
 	defer cancel()
 
 	doc := map[string]any{
-		"device_id":  deviceID,
-		"configs":    configs,
-		"timestamp":  time.Now(),
+		"device_id": deviceID,
+		"configs":   configs,
+		"timestamp": time.Now(),
 	}
 
 	opts := options.Replace().SetUpsert(true)
@@ -71,7 +71,7 @@ func (m *MongoDB) SaveConfig(deviceID string, configs map[string]any) error {
 		doc,
 		opts,
 	)
-	
+
 	if err != nil {
 		log.Printf("Error saving config to MongoDB: %v", err)
 	}

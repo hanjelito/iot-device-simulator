@@ -160,6 +160,11 @@ nats sub "iot.device-001.readings.humidity"
 nats sub "iot.device-001.readings.pressure"
 ```
 
+### 2.5 Subscribe to a Specific Sensor
+```bash
+nats sub "iot.device-001.readings.temperature.temp-01"
+```
+
 **Example of a received reading:**
 ```json
 {

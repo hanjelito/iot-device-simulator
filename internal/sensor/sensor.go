@@ -1,4 +1,4 @@
-// Package sensor proporciona la lógica para simular un sensor de IoT.
+// Package sensor provides the logic to simulate an IoT sensor.
 package sensor
 
 import (
@@ -15,8 +15,8 @@ import (
 	"iot-device-simulator/internal/config"
 )
 
-// Reading representa una única lectura de un sensor.
-// Contiene el valor medido, timestamp, y posible información de error.
+// Reading represents a single sensor reading.
+// Contains the measured value, timestamp, and possible error information.
 type Reading struct {
 	SensorID  string    `json:"sensor_id" bson:"sensor_id"`
 	Type      string    `json:"type" bson:"type"`
@@ -26,15 +26,15 @@ type Reading struct {
 	Error     string    `json:"error,omitempty" bson:"error,omitempty"`
 }
 
-// Storage define la interfaz para el almacenamiento persistente de lecturas.
-// Esto permite desacoplar el sensor de una implementación de base de datos específica.
+// Storage defines the interface for persistent storage of readings.
+// This allows decoupling the sensor from a specific database implementation.
 type Storage interface {
 	SaveReading(reading Reading) error
 }
 
-// Sensor simula un sensor de IoT. Es responsable de generar lecturas periódicas,
-// publicarlas en NATS y guardarlas en un almacenamiento persistente.
-// Es seguro para uso concurrente.
+// Sensor simulates an IoT sensor. It is responsible for generating periodic readings,
+// publishing them to NATS and storing them in persistent storage.
+// It is safe for concurrent use.
 type Sensor struct {
 	config  config.SensorConfig
 	nc      *nats.Conn
@@ -42,14 +42,14 @@ type Sensor struct {
 	mu      sync.RWMutex
 }
 
-// New crea y devuelve una nueva instancia de Sensor.
+// New creates and returns a new Sensor instance.
 func New(sensorConfig config.SensorConfig, nc *nats.Conn, storage Storage) *Sensor {
 	return &Sensor{config: sensorConfig, nc: nc, storage: storage}
 }
 
-// StartSensor inicia el ciclo de vida del sensor en una nueva goroutine.
-// Genera lecturas a la frecuencia especificada en su configuración.
-// Se detiene cuando el contexto es cancelado.
+// StartSensor starts the sensor lifecycle in a new goroutine.
+// Generates readings at the frequency specified in its configuration.
+// Stops when the context is canceled.
 func (s *Sensor) StartSensor(ctx context.Context, deviceID string) {
 	if !s.config.Enabled {
 		log.Printf("Sensor %s is disabled, not starting", s.config.ID)
@@ -72,8 +72,8 @@ func (s *Sensor) StartSensor(ctx context.Context, deviceID string) {
 	}
 }
 
-// generateReading simula una lectura de sensor basada en su configuración.
-// Incluye una probabilidad del 5% de simular un error de comunicación.
+// generateReading simulates a sensor reading based on its configuration.
+// Includes a 5% probability of simulating a communication error.
 func (s *Sensor) generateReading() Reading {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -85,18 +85,18 @@ func (s *Sensor) generateReading() Reading {
 		Timestamp: time.Now(),
 	}
 
-	// Simular error ocasional (5%)
+	// Simulate occasional error (5%)
 	if rand.Float64() < 0.05 {
 		reading.Error = "sensor communication error"
 		return reading
 	}
 
-	// Generar valor aleatorio en el rango configurado
+	// Generate random value within configured range
 	reading.Value = s.config.Min + rand.Float64()*(s.config.Max-s.config.Min)
 	return reading
 }
 
-// publish envía una lectura a través de NATS y la guarda en el almacenamiento si está configurado.
+// publish sends a reading through NATS and saves it to storage if configured.
 func (s *Sensor) publish(reading Reading, deviceID string) {
 	// Publish to NATS first
 	data, _ := json.Marshal(reading)
@@ -114,14 +114,14 @@ func (s *Sensor) publish(reading Reading, deviceID string) {
 	}
 }
 
-// GetConfig devuelve una copia de la configuración actual del sensor de forma segura.
+// GetConfig returns a copy of the current sensor configuration safely.
 func (s *Sensor) GetConfig() config.SensorConfig {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.config
 }
 
-// UpdateFrequency actualiza la frecuencia de lectura del sensor de forma segura.
+// UpdateFrequency updates the sensor reading frequency safely.
 func (s *Sensor) UpdateFrequency(frequency time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -129,7 +129,7 @@ func (s *Sensor) UpdateFrequency(frequency time.Duration) {
 	log.Printf("Sensor %s frequency updated to %v", s.config.ID, frequency)
 }
 
-// UpdateThresholds actualiza los umbrales (min/max) del sensor de forma segura.
+// UpdateThresholds updates the sensor thresholds (min/max) safely.
 func (s *Sensor) UpdateThresholds(thresholds map[string]interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
